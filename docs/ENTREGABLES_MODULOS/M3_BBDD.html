@@ -1,0 +1,97 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Módulo 3 · Conocimientos en BBDD</title><style>
+@page { size: A4; margin: 17mm 15mm; }
+* { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { font-family: "Segoe UI", "Arial", sans-serif; color: #1f2937; font-size: 10.5pt; line-height: 1.5; margin: 0; }
+.doc-header { border-bottom: 3px solid #7c3aed; padding-bottom: 10px; margin-bottom: 18px; }
+.doc-header .kicker { font-size: 9pt; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #7c3aed; }
+.doc-header h1 { margin: 4px 0 2px; font-size: 19pt; color: #0f172a; }
+.doc-header p { margin: 2px 0 0; color: #475569; font-size: 9.5pt; }
+h2 { font-size: 13.5pt; color: #7c3aed; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin: 24px 0 10px; page-break-after: avoid; }
+h3 { font-size: 11.5pt; color: #0f172a; margin: 16px 0 6px; page-break-after: avoid; }
+p { margin: 7px 0; }
+ul, ol { margin: 6px 0; padding-left: 22px; }
+li { margin: 3px 0; }
+code { font-family: "Cascadia Mono", Consolas, monospace; background: #f1f5f9; padding: 1px 4px; border-radius: 3px; font-size: 9pt; }
+pre.code { background: #0f172a; color: #e2e8f0; padding: 11px 13px; border-radius: 6px; font-size: 8.3pt; line-height: 1.42; overflow-x: auto; white-space: pre-wrap; page-break-inside: avoid; }
+pre.code code { background: none; padding: 0; color: inherit; font-size: 8.3pt; }
+table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 9pt; page-break-inside: auto; }
+th { background: #7c3aed; color: #fff; text-align: left; padding: 6px 8px; }
+td { border: 1px solid #cbd5e1; padding: 5px 8px; vertical-align: top; }
+tr:nth-child(even) td { background: #f8fafc; }
+tr { page-break-inside: avoid; }
+.callout { border: 1px solid #94a3b8; border-left: 5px solid #7c3aed; background: #f8fafc; padding: 10px 14px; margin: 12px 0; border-radius: 6px; page-break-inside: avoid; }
+.callout .title { font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+.figure { margin: 0 0 20px; page-break-inside: avoid; }
+.figure img { width: 100%; border: 1px solid #e2e8f0; border-radius: 6px; box-shadow: 0 1px 4px rgba(15,23,42,.12); }
+.figure .cap { margin-top: 5px; font-size: 8.6pt; color: #475569; }
+.pagesep { border: none; border-top: 1px solid #cbd5e1; margin: 20px 0; }
+</style></head><body><div class="doc-header"><div class="kicker">Prueba Técnica — Desarrollador TI Seguros Bolívar</div><h1>Módulo 3 · Conocimientos en BBDD</h1><p>Estrategias de optimización SQL y explicación de las decisiones técnicas.</p></div><h2>1. Consulta lenta a optimizar</h2>
+<p>Contexto: tabla <code>orders</code> con <strong>10.000.000</strong> de filas y <code>customers</code> con <strong>500.000</strong>, consultando las órdenes de clientes de <strong>México</strong>:</p>
+<pre class="code lang-sql"><code>SELECT o.order_id, o.order_date, c.customer_name, o.total_amount
+FROM orders o
+JOIN customers c ON o.customer_id = c.customer_id
+WHERE c.country = 'México';</code></pre>
+<p>Sin índices, el motor hace <strong>Seq Scan</strong> sobre 10M de órdenes y 500K de clientes, con un JOIN costoso entre ambos. A continuación las estrategias aplicadas y su justificación.</p>
+<h2>2. Estrategia 1 — Índices compuestos y cubrientes (Index-Only Scan)</h2>
+<pre class="code lang-sql"><code>-- Filtrar solo clientes de México sin ir a la tabla (covering)
+CREATE INDEX idx_customers_mexico ON customers (country, customer_id) INCLUDE (customer_name);
+
+-- Cubrir el JOIN y las columnas proyectadas de orders
+CREATE INDEX idx_orders_customer_covering ON orders (customer_id) INCLUDE (order_id, order_date, total_amount);</code></pre>
+<p><strong>Decisión y justificación:</strong> el índice <code>customers(country, customer_id)</code> convierte el filtro <code>country = 'México'</code> en un <em>Index Range Scan</em> y, al incluir <code>customer_name</code>, se vuelve <strong>Index-Only Scan</strong> (no toca páginas de datos). El índice cubriente sobre <code>orders.customer_id</code> permite resolver la proyección directamente desde el índice, de modo que el motor puede usar <em>Hash Join</em> o <em>Merge Join</em> sobre estructuras pequeñas: desaparece el Seq Scan de 10M de filas.</p>
+<h2>3. Estrategia 2 — Particionamiento + vista materializada</h2>
+<pre class="code lang-sql"><code>-- Partición por rango temporal de orders (Partition Pruning)
+CREATE TABLE orders (...) PARTITION BY RANGE (order_date);
+
+-- (alternativa) Partición por lista de customers.country
+
+-- Vista materializada para el reporte recurrente de México
+CREATE MATERIALIZED VIEW mv_mexico_orders AS
+SELECT o.order_id, o.order_date, c.customer_name, o.total_amount
+FROM orders o
+JOIN customers c ON o.customer_id = c.customer_id
+WHERE c.country = 'México';
+
+CREATE UNIQUE INDEX idx_mv_mexico_orders ON mv_mexico_orders (order_id);
+
+-- Refresco concurrente (sin bloquear lecturas)
+REFRESH MATERIALIZED VIEW CONCURRENTLY mv_mexico_orders;</code></pre>
+<p><strong>Decisión y justificación:</strong> el particionamiento (por <code>order_date</code> o <code>country</code>) permite <em>Partition Pruning</em> — el optimizador descarta particiones completas según el filtro. La <strong>vista materializada</strong> precalcula el resultado exacto del reporte de México; las consultas recurrentes leen milisegundos desde ese snapshot y el refresco <code>CONCURRENTLY</code> se hace sin bloquear a los usuarios. Se usa cuando el reporte es frecuente y tolera una ligera desactualización.</p>
+<h2>4. Estrategia 3 — Reestructuración CTE con filtrado temprano + EXPLAIN ANALYZE</h2>
+<pre class="code lang-sql"><code>WITH mexico_customers AS (
+  SELECT customer_id, customer_name
+  FROM customers
+  WHERE country = 'México'
+)
+SELECT o.order_id, o.order_date, mc.customer_name, o.total_amount
+FROM mexico_customers mc
+JOIN orders o ON mc.customer_id = o.customer_id;
+
+-- Validación del plan real:
+EXPLAIN (ANALYZE, BUFFERS)
+WITH mexico_customers AS (...) SELECT ... ;</code></pre>
+<p><strong>Decisión y justificación:</strong> reducir el conjunto de trabajo <em>antes</em> del JOIN: el CTE materializa primero los pocos clientes mexicanos y luego los junta con <code>orders</code>, minimizando filas exploradas en el lado grande. <code>EXPLAIN ANALYZE</code> permite confirmar el <em>plan real</em> (no estimado), ver el número de filas (rows), los buffers leídos y el tiempo por nodo, y así decidir datos de forma objetiva.</p>
+<h2>5. Decisión aplicada a la propia plataforma (DDL con constraints e índices)</h2>
+<p>La misma disciplina se aplicó al modelo de pólizas: constraints de integridad y regla de negocio en la base de datos (índice único condicional para "individual = 1 riesgo").</p>
+<pre class="code lang-sql"><code>-- Regla de negocio en BBDD: póliza individual solo 1 riesgo activo
+CREATE UNIQUE INDEX idx_unico_riesgo_individual
+ON riesgos (poliza_id)
+WHERE (estado = 'ACTIVO')
+  AND poliza_id IN (SELECT id FROM polizas WHERE tipo = 'INDIVIDUAL');
+
+-- Consulta A: vencimientos en 30 días (filtro por fecha y estado)
+CREATE INDEX idx_polizas_vencimiento_estado
+ON polizas (fecha_fin, estado)
+INCLUDE (numero_poliza, canon_mensual);
+
+-- Consulta B: prima acumulada por tipo (solo ACTIVA)
+CREATE INDEX idx_polizas_tipo_estado
+ON polizas (tipo, estado)
+INCLUDE (canon_mensual, prima_total);
+
+-- JOIN frecuente pólizas ↔ riesgos
+CREATE INDEX idx_riesgos_poliza_id_estado ON riesgos (poliza_id, estado);</code></pre>
+<h2>6. Resumen de decisiones técnicas</h2>
+<table><thead><tr><th>Estrategia</th><th>Cuándo usarla</th><th>Beneficio clave</th></tr></thead><tbody><tr><td>Índices cubrientes</td><td>Consultas sobre tablas enormes con filtro selectivo y columnas conocidas</td><td>Index-Only Scan: elimina Seq Scan y accesos a datos</td></tr><tr><td>Particionado + MV</td><td>Reportes recurrentes y datos históricos que crecen</td><td>Partition Pruning y lecturas en ms sin bloquear</td></tr><tr><td>CTE + filtrado temprano</td><td>JOINs con una tabla mucho más grande que otra</td><td>Reducción del conjunto de trabajo antes del JOIN</td></tr><tr><td>EXPLAIN ANALYZE</td><td>Siempre antes de decidir</td><td>Evidencia empírica del plan y de los costos</td></tr></tbody></table>
+<hr class="pagesep">
+<p><em>Fuente: spring-boot-backend/README.md (Módulo 3) y pestaña BBDD & Git (src/components/DatabaseAndGitView.tsx) de la plataforma.</em></p></body></html>

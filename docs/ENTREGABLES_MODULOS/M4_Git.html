@@ -1,0 +1,81 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Módulo 4 · Conocimientos en Git</title><style>
+@page { size: A4; margin: 17mm 15mm; }
+* { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { font-family: "Segoe UI", "Arial", sans-serif; color: #1f2937; font-size: 10.5pt; line-height: 1.5; margin: 0; }
+.doc-header { border-bottom: 3px solid #ea580c; padding-bottom: 10px; margin-bottom: 18px; }
+.doc-header .kicker { font-size: 9pt; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #ea580c; }
+.doc-header h1 { margin: 4px 0 2px; font-size: 19pt; color: #0f172a; }
+.doc-header p { margin: 2px 0 0; color: #475569; font-size: 9.5pt; }
+h2 { font-size: 13.5pt; color: #ea580c; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin: 24px 0 10px; page-break-after: avoid; }
+h3 { font-size: 11.5pt; color: #0f172a; margin: 16px 0 6px; page-break-after: avoid; }
+p { margin: 7px 0; }
+ul, ol { margin: 6px 0; padding-left: 22px; }
+li { margin: 3px 0; }
+code { font-family: "Cascadia Mono", Consolas, monospace; background: #f1f5f9; padding: 1px 4px; border-radius: 3px; font-size: 9pt; }
+pre.code { background: #0f172a; color: #e2e8f0; padding: 11px 13px; border-radius: 6px; font-size: 8.3pt; line-height: 1.42; overflow-x: auto; white-space: pre-wrap; page-break-inside: avoid; }
+pre.code code { background: none; padding: 0; color: inherit; font-size: 8.3pt; }
+table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 9pt; page-break-inside: auto; }
+th { background: #ea580c; color: #fff; text-align: left; padding: 6px 8px; }
+td { border: 1px solid #cbd5e1; padding: 5px 8px; vertical-align: top; }
+tr:nth-child(even) td { background: #f8fafc; }
+tr { page-break-inside: avoid; }
+.callout { border: 1px solid #94a3b8; border-left: 5px solid #ea580c; background: #f8fafc; padding: 10px 14px; margin: 12px 0; border-radius: 6px; page-break-inside: avoid; }
+.callout .title { font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+.figure { margin: 0 0 20px; page-break-inside: avoid; }
+.figure img { width: 100%; border: 1px solid #e2e8f0; border-radius: 6px; box-shadow: 0 1px 4px rgba(15,23,42,.12); }
+.figure .cap { margin-top: 5px; font-size: 8.6pt; color: #475569; }
+.pagesep { border: none; border-top: 1px solid #cbd5e1; margin: 20px 0; }
+</style></head><body><div class="doc-header"><div class="kicker">Prueba Técnica — Desarrollador TI Seguros Bolívar</div><h1>Módulo 4 · Conocimientos en Git</h1><p>Comandos solicitados y justificación de su uso (git cherry-pick).</p></div><h2>1. Escenario planteado</h2>
+<p>Estás en la rama <code>feature/new-login</code>. Un compañero fusionó en <code>main</code> un commit que corrige un <strong>bug crítico de seguridad</strong> (hotfix). Necesitas incorporar <strong>únicamente ese commit</strong> a tu rama, sin arrastrar el resto de cambios de <code>main</code>.</p>
+<h2>2. Comando y estrategia: git cherry-pick</h2>
+<pre class="code lang-bash"><code># 1. Estado limpio antes de operar
+git status
+
+# 2. Actualizar referencias del remoto
+git fetch origin main
+
+# 3. Identificar el hash del commit de seguridad en main
+git log origin/main --oneline -n 5
+# Ejemplo: a1b2c3d "fix(security): sanitize auth input token to prevent injection"
+
+# 4. En feature/new-login, aplicar SOLO ese commit
+git cherry-pick a1b2c3d
+
+# 5. Si hay conflicto: resolver, marcar y continuar
+# git status
+# git add &lt;archivos-resueltos&gt;
+# git cherry-pick --continue
+
+# 6. Verificar el commit incorporado
+git log -1 --stat
+
+# 7. (Opcional) cancelar la operación si falla
+# git cherry-pick --abort
+</code></pre>
+<h2>3. Justificación de la decisión</h2>
+<p><code>git cherry-pick &lt;hash&gt;</code> extrae un commit individual por su SHA-1 y lo reaplica sobre la rama actual mediante un <strong>3-way merge</strong> del parche. Es la única opción que trae exactamente un commit.</p>
+<h3>Por qué NO git merge main</h3>
+<ul><li>Un merge traería <strong>todos</strong> los commits acumulados de <code>main</code> (features incompletas de otros desarrolladores, cambios que desestabilizan la rama).</li><li>Violaría el requisito de aislar el parche de seguridad.</li></ul>
+<h3>Por qué NO git rebase main</h3>
+<ul><li>Un rebase <strong>reescribe el historial</strong> de <code>feature/new-login</code> y lo coloca sobre la punta de <code>main</code>, trayendo la totalidad de sus cambios.</li><li>Además modifica los SHAs de los commits locales (complicación y riesgo en trabajo compartido).</li></ul>
+<div class="callout"><div class="title">Conclusión</div><p><code>cherry-pick</code> minimiza el alcance del cambio (cirugía quirúrgica), mantiene el historial intacto y es la práctica estándar para backport de hotfixes.</p></div>
+<h2>4. Complemento: modelo de branching recomendado (GitFlow adaptado)</h2>
+<table><thead><tr><th>Rama</th><th>Rol</th><th>Reglas</th></tr></thead><tbody><tr><td>main</td><td>Producción auditada</td><td>Protegida; solo merges de releases/hotfixes</td></tr><tr><td>develop</td><td>Integración continua</td><td>Despliega a QA; fuente de las features</td></tr><tr><td>feature/*</td><td>Historias cortas (1-3 días)</td><td>Nacen de develop; se fusionan con PR</td></tr><tr><td>hotfix/*</td><td>Emergencias P1 desde main</td><td>Merge a main con tag semántico y backport a develop</td></tr></tbody></table>
+<h3>4.1 Protocolo de hotfix en producción</h3>
+<pre class="code lang-bash"><code># 1. Crear la rama de emergencia desde main
+git checkout main &amp;&amp; git pull origin main &amp;&amp; git checkout -b hotfix/calculo-prima-colectiva-v1.0.1
+
+# 2. Corregir + test de regresión (mvn test) + commit
+
+# 3. Merge a main con tag semántico y despliegue
+git checkout main &amp;&amp; git merge --no-ff hotfix/calculo-prima-colectiva-v1.0.1 \
+    &amp;&amp; git tag -a v1.0.1 -m "HOTFIX: correccion calculo prima" &amp;&amp; git push origin main --tags
+
+# 4. Backport a develop y limpieza
+git checkout develop &amp;&amp; git merge --no-ff hotfix/calculo-prima-colectiva-v1.0.1 \
+    &amp;&amp; git push origin develop &amp;&amp; git branch -d hotfix/calculo-prima-colectiva-v1.0.1
+</code></pre>
+<h3>4.2 Buenas prácticas de equipo</h3>
+<ul><li><strong>Conventional Commits:</strong> mensajes estándar — <code>feat(polizas): calculo de prima con IPC</code>, <code>fix(riesgos): bloqueo adicion en poliza individual</code>.</li><li><strong>Branch protection:</strong> push directo bloqueado a <code>main</code>/<code>develop</code>, mínimo 1 aprobación y CI en verde.</li><li><strong>Squash & merge</strong> en PRs: historial de <code>develop</code> limpio y atómico.</li></ul>
+<hr class="pagesep">
+<p><em>Fuente: spring-boot-backend/README.md (Módulo 4) y pestaña BBDD & Git (src/components/DatabaseAndGitView.tsx) de la plataforma.</em></p></body></html>

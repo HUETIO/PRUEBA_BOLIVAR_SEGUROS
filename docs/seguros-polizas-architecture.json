@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "SegurosPolizas — Gestión de Pólizas de Arrendamiento",
+    "output": "seguros-polizas-architecture.html",
+    "quality_profile": "showcase",
+    "viewBox": [1200, 664],
+    "views": [
+      { "id": "ruta-demo", "label": "Ruta principal (demo)", "focus": ["user", "spa", "express", "core-mock"], "note": "Navegador -> React SPA -> Express :3000. La API en memoria replica el contrato Spring y registra eventos en el mock WebLogic." },
+      { "id": "backend-real", "label": "Backend real Spring Boot", "focus": ["controller", "service", "repository", "h2"], "note": "Java 17 + Spring Boot 3 (:8080), capas controller -> service -> repository sobre H2 (mem:polizasdb). Contrato identico al demo." },
+      { "id": "integracion-core", "label": "WebLogic CORE (Modulo 1)", "focus": ["service", "core-integration", "core-mock", "weblogic"], "note": "Modulo 1 objetivo: EDA + Hexagonal + CQRS/API Gateway + Outbox; CoreIntegrationService sincroniza la capa media." },
+      { "id": "reglas-negocio", "label": "Reglas y endpoints (Modulo 2)", "focus": ["controller", "service"], "note": "6 endpoints obligatorios, auth x-api-key (401). 422 en: individual = 1 riesgo, no renovar CANCELADA, cancelar poliza = cascada a riesgos." },
+      { "id": "bbdd-git", "label": "BBDD y Git (Modulos 3-4)", "focus": ["repository", "h2"], "note": "M3: indices cubrientes, particionado + vistas materializadas, CTE con EXPLAIN ANALYZE. M4: git cherry-pick del hotfix a feature/new-login." }
+    ]
+  },
+  "components": [
+    { "id": "user", "type": "external", "label": "Usuarios & Clientes", "sublabel": "Browser / cURL / WebClient", "pos": [25, 84], "size": [130, 64] },
+    { "id": "spa", "type": "frontend", "label": "React SPA", "sublabel": "React 19 · Vite · TS", "tag": "src/", "pos": [200, 84], "size": [180, 70] },
+    { "id": "express", "type": "backend", "label": "Express API (in-memory)", "sublabel": "server.ts · :3000", "tag": "x-api-key", "pos": [420, 84], "size": [190, 70] },
+    { "id": "core-mock", "type": "external", "label": "WebLogic capa media (Mock)", "sublabel": "/core-mock/evento · SLF4J", "pos": [660, 84], "size": [190, 70] },
+    { "id": "weblogic", "type": "external", "label": "Oracle WebLogic CORE", "sublabel": "Sistema legado (objetivo)", "pos": [900, 87], "size": [180, 64] },
+    { "id": "controller", "type": "backend", "label": "Controller Layer", "sublabel": "Poliza · Riesgo · CoreMock", "tag": "ApiKeyAuthFilter", "pos": [65, 404], "size": [180, 70] },
+    { "id": "service", "type": "backend", "label": "Service Layer", "sublabel": "impl · reglas de negocio", "pos": [275, 404], "size": [170, 70] },
+    { "id": "repository", "type": "backend", "label": "JPA Repositories", "sublabel": "Spring Data", "pos": [485, 404], "size": [170, 70] },
+    { "id": "h2", "type": "database", "label": "H2 database", "sublabel": "mem:polizasdb", "pos": [685, 404], "size": [150, 70] },
+    { "id": "core-integration", "type": "backend", "label": "CoreIntegrationService", "sublabel": "RestTemplate · adapter", "pos": [855, 544], "size": [180, 70] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Frontend Web", "wraps": ["spa"] },
+    { "kind": "region", "label": "Servidor Node · demo completa", "wraps": ["express"] },
+    { "kind": "region", "label": "Backend Spring Boot 3 · Java 17 (:8080)", "wraps": ["controller", "service", "repository", "h2", "core-integration"] },
+    { "kind": "security-group", "label": "x-api-key: 123456 obligatorio", "wraps": ["express"] },
+    { "kind": "security-group", "label": "ApiKeyAuthFilter", "wraps": ["controller"] }
+  ],
+  "connections": [
+    { "id": "user-to-spa", "from": "user", "to": "spa", "label": "HTTPS", "variant": "emphasis" },
+    { "id": "spa-to-express", "from": "spa", "to": "express", "label": "fetch /api/*", "labelAt": [400, 170] },
+    { "id": "express-to-core-mock", "from": "express", "to": "core-mock", "variant": "dashed" },
+    { "id": "user-to-controller", "from": "user", "to": "controller", "label": "HTTP :8080", "variant": "dashed", "fromSide": "bottom", "toSide": "top" },
+    { "id": "controller-to-service", "from": "controller", "to": "service", "label": "delegacion", "labelAt": [260, 490] },
+    { "id": "service-to-repository", "from": "service", "to": "repository", "label": "JPA / Spring Data", "labelAt": [465, 490] },
+    { "id": "repository-to-h2", "from": "repository", "to": "h2", "label": "SQL", "labelAt": [670, 490] },
+    { "id": "service-to-core-integration", "from": "service", "to": "core-integration", "label": "notificarCambioCore()", "variant": "dashed", "fromSide": "bottom", "toSide": "left" },
+    { "id": "core-integration-to-core-mock", "from": "core-integration", "to": "core-mock", "label": "POST · x-api-key", "variant": "dashed", "fromSide": "top", "toSide": "bottom" },
+    { "id": "core-mock-to-weblogic", "from": "core-mock", "to": "weblogic", "label": "simula la integracion real", "variant": "dashed", "labelAt": [875, 180] }
+  ],
+  "cards": [
+    { "dot": "emerald", "title": "Modulos 1-2 · Diseño y API", "items": ["M1: EDA, Hexagonal, CQRS/API Gateway; modelo Poliza/Riesgo/CoreLog/Recordatorio; NFR observabilidad y versionado", "M2: 6 endpoints + /core-mock/evento; x-api-key (401); 422: individual = 1 riesgo, no renovar CANCELADA, cascada"] },
+    { "dot": "violet", "title": "Modulos 3-4 · BBDD y Git", "items": ["M3: indices cubrientes, particionado + vista materializada, CTE filtrado temprano (EXPLAIN ANALYZE)", "M4: git cherry-pick del hotfix a feature/new-login (vs merge/rebase)"] }
+  ]
+}

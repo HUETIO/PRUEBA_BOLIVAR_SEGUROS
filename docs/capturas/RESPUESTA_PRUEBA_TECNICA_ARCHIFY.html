@@ -1,0 +1,121 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Respuesta Prueba Técnica + Anexo Arquitectura Archify</title><style>@page { size: A4; margin: 18mm 16mm; }body { font-family: "Segoe UI", "Arial", sans-serif; color: #1f2937; font-size: 11pt; line-height: 1.5; margin: 0; }.doc-header { border-bottom: 3px solid #0d9488; padding-bottom: 10px; margin-bottom: 20px; }.doc-header h1 { margin: 0; font-size: 18pt; color: #0f172a; }.doc-header p { margin: 4px 0 0; color: #475569; font-size: 9.5pt; }h1 { font-size: 17pt; color: #0f172a; }h2 { font-size: 14pt; color: #0f766e; border-bottom: 1px solid #99f6e4; padding-bottom: 4px; margin-top: 26px; page-break-after: avoid; }h3 { font-size: 12pt; color: #0f172a; page-break-after: avoid; }h4 { font-size: 11pt; color: #0f172a; page-break-after: avoid; }p { margin: 8px 0; }ul { margin: 6px 0 6px 0; padding-left: 22px; }li { margin: 3px 0; }code { font-family: "Cascadia Mono", Consolas, monospace; background: #f1f5f9; padding: 1px 4px; border-radius: 3px; font-size: 9.5pt; }pre.code { background: #0f172a; color: #e2e8f0; padding: 12px 14px; border-radius: 6px; overflow-x: auto; font-size: 8.5pt; line-height: 1.4; page-break-inside: avoid; white-space: pre-wrap; }pre.code code { background: none; color: inherit; padding: 0; font-size: 8.5pt; }table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 9.5pt; page-break-inside: auto; }th { background: #0f766e; color: #fff; text-align: left; padding: 6px 8px; }td { border: 1px solid #cbd5e1; padding: 5px 8px; vertical-align: top; }tr:nth-child(even) td { background: #f8fafc; }tr { page-break-inside: avoid; }blockquote { border-left: 4px solid #0d9488; background: #ecfdf5; margin: 10px 0; padding: 8px 12px; color: #065f46; }hr { border: none; border-top: 1px solid #cbd5e1; margin: 18px 0; }a { color: #0d9488; text-decoration: none; }.annex { margin-top: 30px; }.annex .intro { color: #475569; }figure { margin: 0 0 22px; page-break-inside: avoid; }figure img { width: 100%; border: 1px solid #e2e8f0; border-radius: 6px; box-shadow: 0 1px 4px rgba(15,23,42,.12); }figcaption { margin-top: 6px; font-size: 9pt; color: #475569; }</style></head><body><div class="doc-header"><h1>Respuesta Prueba Técnica — Seguros Bolívar</h1><p>Documento original: <code>RESPUESTA_PRUEBA_TECNICA.md</code> · Anexo visual generado con Archify</p></div><article><h1>Prueba Técnica – Desarrollador TI Seguros Bolívar</h1>
+<ul>
+<li><strong>Autor:</strong> Diego Alejandro Sepulveda Huetio</li>
+</ul>
+<ul>
+<li><strong>Tecnología utilizada:</strong> Desarrollo asistido con <strong>Gemini 3.8</strong></li>
+</ul>
+<ul>
+<li><strong>Stack del proyecto:</strong> React 19 + Vite + TypeScript (frontend), Spring Boot 3 + Java 17 (backend real), Express/tsx (API en memoria que replica el contrato), H2 + JPA.</li>
+</ul>
+<hr>
+<h2>1. Cómo funciona el proyecto</h2>
+<p>Es una <strong>plataforma de gestión de pólizas de arrendamiento</strong> (individuales y colectivas) que responde a los 4 módulos de la prueba.</p>
+<ul>
+<li><strong>Módulo 1 – System Design:</strong> Pestaña *System Design* (y README del backend con la arquitectura). Incluye diagrama de componentes (API Gateway, Servicio de Pólizas, Servicio de Riesgos, Bus de eventos, Adapter CORE WebLogic, Notificaciones, BD), 3 patrones justificados (Event-Driven, Hexagonal, CQRS + API Gateway), modelo de datos y NFRs (escalabilidad, logs/observabilidad, tolerancia a fallos y versionado de APIs).</li>
+</ul>
+<ul>
+<li><strong>Módulo 2 – API de Gestión de Pólizas (Spring Boot):</strong> El backend <code>spring-boot-backend/</code> expone los 6 endpoints obligatorios con capas <code>controller → service → repository</code>, entidades <code>Poliza</code> y <code>Riesgo</code>, reglas de negocio y security filter <code>x-api-key</code>.</li>
+</ul>
+<ul>
+<li><strong>Módulo 3 – BBDD:</strong> Pestaña *BBDD &amp; Git*: DDL con constraints, consultas de negocio e índices; README backend con las 3 estrategias de optimización (índices cubrientes, particionamiento/vistas materializadas, CTE con filtrado temprano).</li>
+</ul>
+<ul>
+<li><strong>Módulo 4 – Git:</strong> README backend y pestaña *BBDD &amp; Git*: estrategia <code>git cherry-pick</code> justificada.</li>
+</ul>
+<ul>
+<li><strong>Frontend (React 19 + TypeScript):</strong></li>
+<ul>
+<li><strong>Barra Superior (Header Operativo Exclusivo):</strong></li>
+<ul>
+<li>📊 *Tablero Mensual:* KPIs de cartera, cánones activos, metas de renovación porcentual e historial mes a mes.</li>
+</ul>
+<ul>
+<li>🛡️ *Pólizas &amp; Riesgos:* Emisión, cancelación en cascada, administración de riesgos amparados y renovación con ajuste por IPC.</li>
+</ul>
+<ul>
+<li>⏰ *Recordatorios:* Alertas de renovación y pagos por canales Email, SMS y Push.</li>
+</ul>
+<ul>
+<li>📡 *Consola WebLogic CORE:* Bitácora de eventos para auditoría de integración con la capa media.</li>
+</ul>
+<ul>
+<li>⬇️ *Acceso directo a Instrucciones:* Botón ancla con scroll suave hacia el final del proyecto.</li>
+</ul>
+</ul>
+<ul>
+<li><strong>Parte Inferior del Proyecto (Asistente Interactivo de Soporte &amp; Evaluación Técnica):</strong></li>
+<ul>
+<li>💡 *Diseño Interactivo y No Invasivo:* Para no saturar ni confundir al usuario durante los procesos operativos diarios, la sección inicia en un estado de consulta amigable que pregunta si necesita ayuda o desea ver la documentación técnica.</li>
+</ul>
+<ul>
+<li>🔌 <strong>Sección Exclusiva: Consumo de Endpoints:</strong> Guía técnica interactiva para aprender a consumir la REST API, especificación de contratos, autenticación <code>x-api-key: 123456</code>, ejemplos funcionales en <strong>cURL</strong>, <strong>JavaScript/React (Fetch)</strong>, <strong>Spring Boot (WebClient)</strong> y <strong>Python (requests)</strong>, junto con una <strong>Consola Sandbox</strong> de pruebas en vivo.</li>
+</ul>
+<ul>
+<li>🏛️ *Módulo 1 – System Design:* Diagrama de arquitectura, justificación de patrones y NFRs.</li>
+</ul>
+<ul>
+<li>⚡ *Módulos 3 &amp; 4 – BBDD &amp; Git:* DDL con constraints, optimizaciones SQL y flujo Git.</li>
+</ul>
+<ul>
+<li>☕ *Código Spring Boot:* Explorador interactivo del código fuente Java.</li>
+</ul>
+<ul>
+<li>✖ *Botón de Cierre:* Permite ocultar las instrucciones en cualquier momento con un clic para regresar al modo estrictamente operativo.</li>
+</ul>
+</ul>
+</ul>
+<hr>
+<h2>2. Verificación frente a los requisitos del PDF</h2>
+<h3>Módulo 1 – Diseño de Sistema ✅</h3>
+<table><thead><tr><th>Requisito</th><th>Estado</th><th>Evidencia</th></tr></thead><tbody><tr><td>Arquitectura de alto nivel</td><td>✅</td><td><code>spring-boot-backend/README.md</code> (§ Módulo 1) y <code>src/components/SystemDesignView.tsx</code></td></tr><tr><td>3 patrones de arquitectura justificados</td><td>✅</td><td>Event-Driven, Hexagonal (Ports &amp; Adapters), CQRS + API Gateway</td></tr><tr><td>Modelo de datos principal</td><td>✅</td><td>Poliza, Riesgo, Auditoría Core Log, Recordatorio</td></tr><tr><td>Escalabilidad / Logs / Tolerancia a fallos / Versionado</td><td>✅</td><td>Sección NFR del System Design View</td></tr><tr><td>Diagrama de componentes</td><td>✅</td><td>Servicio Pólizas, Riesgos, Notificaciones, Adapter CORE, BD, API Gateway</td></tr></tbody></table>
+<h3>Módulo 2 – Prueba Técnica Práctica ✅</h3>
+<table><thead><tr><th>Requerimiento</th><th>Estado</th><th>Dónde</th></tr></thead><tbody><tr><td><code>GET /polizas</code> (filtro por <code>tipo</code> y <code>estado</code>)</td><td>✅</td><td><code>PolizaController</code> + <code>PolizaRepository.findByTipoAndEstado</code></td></tr><tr><td><code>GET /polizas/{id}/riesgos</code></td><td>✅</td><td><code>PolizaController</code> → <code>RiesgoService.obtenerRiesgosPorPoliza</code></td></tr><tr><td><code>POST /polizas/{id}/renovar</code> (+IPC, estado → RENOVADA)</td><td>✅</td><td><code>PolizaServiceImpl.renovarPoliza</code> (canon/prima × (1+IPC/100))</td></tr><tr><td><code>POST /polizas/{id}/cancelar</code></td><td>✅</td><td><code>PolizaServiceImpl.cancelarPoliza</code></td></tr><tr><td><code>POST /polizas/{id}/riesgos</code> (solo Colectiva)</td><td>✅</td><td><code>RiesgoServiceImpl.agregarRiesgoAPoliza</code> con validación de tipo</td></tr><tr><td><code>POST /riesgos/{id}/cancelar</code></td><td>✅</td><td><code>RiesgoServiceImpl.cancelarRiesgo</code></td></tr><tr><td>Regla: individual = 1 riesgo</td><td>✅</td><td>Validación <code>countByPolizaIdAndEstado &gt;= 1</code> → 422</td></tr><tr><td>Regla: no renovar póliza cancelada</td><td>✅</td><td><code>BusinessException</code> → 422</td></tr><tr><td>Regla: cancelar póliza cancela sus riesgos</td><td>✅</td><td>Cascada sobre <code>riesgoRepository</code></td></tr><tr><td>Regla: agregar riesgo valida tipo de póliza</td><td>✅</td><td><code>TipoPoliza.INDIVIDUAL</code> rechazado con más de 1 riesgo</td></tr><tr><td>Mock externo <code>POST /core-mock/evento</code></td><td>✅</td><td><code>CoreMockController</code> (logs reales SLF4J) + <code>server.ts</code> <code>/api/core-mock/evento</code></td></tr><tr><td>Seguridad <code>x-api-key: 123456</code> (401 si falta)</td><td>✅</td><td><code>ApiKeyAuthFilter</code> (Spring) y middleware Express</td></tr><tr><td>Estructura Spring Boot por capas</td><td>✅</td><td>controller / service / impl / repository / model / dto / security / exception</td></tr><tr><td>Entidades básicas (Poliza, Riesgo)</td><td>✅</td><td><code>model/entity/Poliza.java</code>, <code>Riesgo.java</code></td></tr><tr><td>Código funcional de endpoints</td><td>✅</td><td>Compila con Java 17 + Maven (<code>mvn spring-boot:run</code>, puerto 8080)</td></tr><tr><td>Validaciones de negocio</td><td>✅</td><td><code>GlobalExceptionHandler</code> (422 negocio, 404, 400 validación, 500)</td></tr><tr><td>README con instrucciones</td><td>✅</td><td><code>spring-boot-backend/README.md</code></td></tr></tbody></table>
+<h3>Módulo 3 – BBDD ✅</h3>
+<p>Al menos 3 estrategias documentadas (consulta de <code>orders</code> 10M / <code>customers</code> 500K con filtro México):</p>
+<p>1. Índices compuestos y cubrientes (Covering / Index-Only Scan).<br>2. Particionamiento de tablas + vista materializada con refresco concurrente.<br>3. Reestructuración de consulta con CTE/filtrado temprano + <code>EXPLAIN ANALYZE</code>.</p>
+<h3>Módulo 4 – Git ✅</h3>
+<p><code>git cherry-pick &lt;hash&gt;</code> para traer el hotfix de seguridad de <code>main</code> a <code>feature/new-login</code> sin arrastrar el resto; justificado frente a <code>merge</code> y <code>rebase</code>.</p>
+<hr>
+<h2>3. Cómo instalar y ejecutar</h2>
+<h3>A) Frontend + API en memoria (la app completa, puerto 3000)</h3>
+<pre class="code lang-bash"><code># 1. Requisitos: Node.js 18+
+npm install
+
+# 2. (Opcional) .env.local con tu GEMINI_API_KEY
+cp .env.example .env.local
+
+# 3. Ejecutar (índice + API en memoria)
+npm run dev</code></pre>
+<p>Abrir <code>http://localhost:3000</code>. Toda llamada a la API exige el header <code>x-api-key: 123456</code> (editable desde el botón gris del top bar para probar el 401).</p>
+<blockquote>La app funciona 100% con la API en memoria (<code>server.ts</code>). Nota: la clave de ambiente <code>GEMINI_API_KEY</code> solo se usa si agregas funciones del modelo; para la prueba técnica no es necesaria.</blockquote>
+<h3>B) Backend Spring Boot real (puerto 8080)</h3>
+<pre class="code lang-bash"><code>cd spring-boot-backend
+
+# Requisitos: Java 17+ y Maven 3.8+
+mvn clean package
+mvn spring-boot:run</code></pre>
+<ul>
+<li>API en <code>http://localhost:8080</code> (ej.: <code>GET http://localhost:8080/polizas?tipo=COLECTIVA&amp;estado=ACTIVA</code>).</li>
+</ul>
+<ul>
+<li>Consola H2: <code>http://localhost:8080/h2-console</code> (JDBC <code>jdbc:h2:mem:polizasdb</code>, user <code>sa</code>, sin password).</li>
+</ul>
+<ul>
+<li>El costado "WebLogic CORE" se simula con <code>POST /core-mock/evento</code>, que registra en logs cada intento de sincronización.</li>
+</ul>
+<h3>Verificación rápida de los endpoints</h3>
+<pre class="code lang-bash"><code>curl -X GET "http://localhost:8080/polizas?tipo=COLECTIVA" -H "x-api-key: 123456"
+curl -X POST "http://localhost:8080/polizas/1/renovar" -H "x-api-key: 123456" -H "Content-Type: application/json" -d '{"porcentajeIpc": 9.28}'
+curl -X POST "http://localhost:8080/core-mock/evento" -H "x-api-key: 123456" -H "Content-Type: application/json" -d '{"evento":"ACTUALIZACION","polizaId":555}'</code></pre>
+<hr>
+<h2>4. Observaciones / detalles</h2>
+<ul>
+<li>El <code>README.md</code> raíz es el plantilla genérica de AI Studio; la documentación real de la solución está en <code>spring-boot-backend/README.md</code> y en este documento.</li>
+</ul>
+<ul>
+<li>El backend Spring Boot inicia con la BD H2 vacía (sin datos semilla); la demo con datos la provee la API en memoria del frontend, que replica el mismo contrato y reglas.</li>
+</ul>
+<ul>
+<li>Comandos de lint/typecheck disponibles: <code>npm run lint</code> (<code>tsc --noEmit</code>) y <code>npm run build</code>.</li>
+</ul></article><section class="annex"><h2>Anexo — Arquitectura del proyecto (capturas de Archify)</h2><p class="intro">A continuación, capturas generadas con <strong>Archify</strong> desde el documento <code>docs/seguros-polizas-architecture.html</code>. Cada vista resalta los componentes involucrados y explica cómo funciona esa parte del sistema.</p><figure><img src="view-all.png" alt="Vista general de la arquitectura SegurosPolizas (Archify). 10 componentes y 10 conexiones: frontend React 19, API demo Express en memoria, backend Spring Boot 3 (Controller → Service → Repository → H2) y la integración con la capa media WebLogic CORE."/><figcaption><strong>Figura 1.</strong> Vista general de la arquitectura SegurosPolizas (Archify). 10 componentes y 10 conexiones: frontend React 19, API demo Express en memoria, backend Spring Boot 3 (Controller → Service → Repository → H2) y la integración con la capa media WebLogic CORE.</figcaption></figure><figure><img src="view-ruta-demo.png" alt="Vista "Ruta principal (demo)" — el camino operativo completo: Usuarios & Clientes → React SPA → Express API (:3000, API en memoria que replica el contrato Spring) → WebLogic capa media (mock). Cada mutación queda registrada como evento."/><figcaption><strong>Figura 2.</strong> Vista "Ruta principal (demo)" — el camino operativo completo: Usuarios & Clientes → React SPA → Express API (:3000, API en memoria que replica el contrato Spring) → WebLogic capa media (mock). Cada mutación queda registrada como evento.</figcaption></figure><figure><img src="view-backend-real.png" alt="Vista "Backend real Spring Boot" — implementación Java 17 (:8080): Controller Layer (Poliza · Riesgo · CoreMock, filtro ApiKeyAuthFilter) → Service Layer (reglas de negocio) → JPA Repositories → H2 (mem:polizasdb)."/><figcaption><strong>Figura 3.</strong> Vista "Backend real Spring Boot" — implementación Java 17 (:8080): Controller Layer (Poliza · Riesgo · CoreMock, filtro ApiKeyAuthFilter) → Service Layer (reglas de negocio) → JPA Repositories → H2 (mem:polizasdb).</figcaption></figure><figure><img src="view-integracion-core.png" alt="Vista "WebLogic CORE (Módulo 1)" — cómo funciona la integración: Service llama a CoreIntegrationService (adapter RestTemplate, patrón Hexagonal/Ports & Adapters + Outbox), que notifica a la capa media (mock /core-mock/evento con logs SLF4J) con destino al Oracle WebLogic CORE."/><figcaption><strong>Figura 4.</strong> Vista "WebLogic CORE (Módulo 1)" — cómo funciona la integración: Service llama a CoreIntegrationService (adapter RestTemplate, patrón Hexagonal/Ports & Adapters + Outbox), que notifica a la capa media (mock /core-mock/evento con logs SLF4J) con destino al Oracle WebLogic CORE.</figcaption></figure><figure><img src="view-reglas-negocio.png" alt="Vista "Reglas y endpoints (Módulo 2)" — autenticación x-api-key (401 si falta), los 6 endpoints obligatorios y las reglas de negocio con 422: individual = 1 riesgo, no renovar póliza CANCELADA, cancelación en cascada de riesgos."/><figcaption><strong>Figura 5.</strong> Vista "Reglas y endpoints (Módulo 2)" — autenticación x-api-key (401 si falta), los 6 endpoints obligatorios y las reglas de negocio con 422: individual = 1 riesgo, no renovar póliza CANCELADA, cancelación en cascada de riesgos.</figcaption></figure><figure><img src="view-bbdd-git.png" alt="Vista "BBDD y Git (Módulos 3-4)" — estrategias SQL (índices cubrientes, particionado + vista materializada con refresco concurrente, CTE con filtrado temprano + EXPLAIN ANALYZE) y git cherry-pick del hotfix de main a feature/new-login."/><figcaption><strong>Figura 6.</strong> Vista "BBDD y Git (Módulos 3-4)" — estrategias SQL (índices cubrientes, particionado + vista materializada con refresco concurrente, CTE con filtrado temprano + EXPLAIN ANALYZE) y git cherry-pick del hotfix de main a feature/new-login.</figcaption></figure></section></body></html>

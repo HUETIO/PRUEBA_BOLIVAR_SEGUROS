@@ -1,0 +1,103 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Módulo 2 · Prueba Técnica Práctica</title><style>
+@page { size: A4; margin: 17mm 15mm; }
+* { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { font-family: "Segoe UI", "Arial", sans-serif; color: #1f2937; font-size: 10.5pt; line-height: 1.5; margin: 0; }
+.doc-header { border-bottom: 3px solid #2563eb; padding-bottom: 10px; margin-bottom: 18px; }
+.doc-header .kicker { font-size: 9pt; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #2563eb; }
+.doc-header h1 { margin: 4px 0 2px; font-size: 19pt; color: #0f172a; }
+.doc-header p { margin: 2px 0 0; color: #475569; font-size: 9.5pt; }
+h2 { font-size: 13.5pt; color: #2563eb; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin: 24px 0 10px; page-break-after: avoid; }
+h3 { font-size: 11.5pt; color: #0f172a; margin: 16px 0 6px; page-break-after: avoid; }
+p { margin: 7px 0; }
+ul, ol { margin: 6px 0; padding-left: 22px; }
+li { margin: 3px 0; }
+code { font-family: "Cascadia Mono", Consolas, monospace; background: #f1f5f9; padding: 1px 4px; border-radius: 3px; font-size: 9pt; }
+pre.code { background: #0f172a; color: #e2e8f0; padding: 11px 13px; border-radius: 6px; font-size: 8.3pt; line-height: 1.42; overflow-x: auto; white-space: pre-wrap; page-break-inside: avoid; }
+pre.code code { background: none; padding: 0; color: inherit; font-size: 8.3pt; }
+table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 9pt; page-break-inside: auto; }
+th { background: #2563eb; color: #fff; text-align: left; padding: 6px 8px; }
+td { border: 1px solid #cbd5e1; padding: 5px 8px; vertical-align: top; }
+tr:nth-child(even) td { background: #f8fafc; }
+tr { page-break-inside: avoid; }
+.callout { border: 1px solid #94a3b8; border-left: 5px solid #2563eb; background: #f8fafc; padding: 10px 14px; margin: 12px 0; border-radius: 6px; page-break-inside: avoid; }
+.callout .title { font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+.figure { margin: 0 0 20px; page-break-inside: avoid; }
+.figure img { width: 100%; border: 1px solid #e2e8f0; border-radius: 6px; box-shadow: 0 1px 4px rgba(15,23,42,.12); }
+.figure .cap { margin-top: 5px; font-size: 8.6pt; color: #475569; }
+.pagesep { border: none; border-top: 1px solid #cbd5e1; margin: 20px 0; }
+</style></head><body><div class="doc-header"><div class="kicker">Prueba Técnica — Desarrollador TI Seguros Bolívar</div><h1>Módulo 2 · Prueba Técnica Práctica</h1><p>Solución implementada (Spring Boot + React) y formato de entrega: enlace público de GitHub.</p></div><h2>1. Cómo funciona la solución</h2>
+<p>El ejercicio se resolvió con <strong>React 19 + Vite + TypeScript</strong> (frontend) y dos backends con <strong>contrato idéntico</strong>: una <strong>API en memoria Express/tsx</strong> (<code>server.ts</code>, puerto 3000) que replica cada endpoint y regla para que la demo funcione 100 % sin infraestructura, y el <strong>backend real Spring Boot 3 + Java 17</strong> (<code>spring-boot-backend/</code>, puerto 8080) con capas <code>controller → service → repository</code> sobre H2. Ambos exigen el header <code>x-api-key: 123456</code> (401 si falta) y notifican cada cambio al CORE vía <code>POST /core-mock/evento</code>.</p>
+<h2>2. Los 6 endpoints obligatorios (backend Spring Boot)</h2>
+<table><thead><tr><th>Endpoint</th><th>Descripción</th><th>Implementación</th></tr></thead><tbody><tr><td>GET /polizas (tipo, estado)</td><td>Listar pólizas por filtros</td><td>PolizaRepository.findByTipoAndEstado (JPQL con predicados opcionales)</td></tr><tr><td>GET /polizas/{id}/riesgos</td><td>Riesgos de la póliza</td><td>RiesgoService.obtenerRiesgosPorPoliza (404 si la póliza no existe)</td></tr><tr><td>POST /polizas/{id}/renovar</td><td>Renovar con ajuste IPC; estado → RENOVADA</td><td>PolizaServiceImpl.renovarPoliza: canon × (1 + IPC/100), prima = canon × vigencia; evento RENOVACION_IPC</td></tr><tr><td>POST /polizas/{id}/cancelar</td><td>Cancelar póliza en cascada</td><td>PolizaServiceImpl.cancelarPoliza: cancela la póliza y todos sus riesgos; evento CANCELACION_POLIZA_Y_RIESGOS</td></tr><tr><td>POST /polizas/{id}/riesgos</td><td>Agregar riesgo (solo colectiva; 1er riesgo si individual)</td><td>RiesgoServiceImpl.agregarRiesgoAPoliza con validación de tipo y conteo; recalcula canon acumulado en colectiva</td></tr><tr><td>POST /riesgos/{id}/cancelar</td><td>Cancelar riesgo individual</td><td>RiesgoServiceImpl.cancelarRiesgo; resta el canon en colectiva; evento CANCELAR_RIESGO</td></tr></tbody></table>
+<p>Extras implementados: <code>GET /polizas/{id}</code>, <code>POST /polizas</code> (emisión con cálculo de prima y riesgo inicial) y el mock <code>POST /core-mock/evento</code>.</p>
+<h2>3. Reglas de negocio y códigos de respuesta</h2>
+<table><thead><tr><th>Regla</th><th>Implementación</th><th>HTTP</th></tr></thead><tbody><tr><td>Individual solo puede tener 1 riesgo activo</td><td>countByPolizaIdAndEstado ≥ 1 → BusinessException</td><td>422</td></tr><tr><td>No se puede renovar una póliza CANCELADA</td><td>PolizaServiceImpl.renovarPoliza</td><td>422</td></tr><tr><td>No se pueden agregar riesgos a póliza CANCELADA</td><td>RiesgoServiceImpl.agregarRiesgoAPoliza</td><td>422</td></tr><tr><td>Cancelar póliza cancela todos sus riesgos</td><td>Cascada: findByPolizaId + cancelar cada riesgo</td><td>200</td></tr><tr><td>Agregar riesgo valida el tipo de póliza</td><td>INDIVIDUAL con 1 riesgo activo → rechazado</td><td>422</td></tr><tr><td>Falta/erróneo x-api-key</td><td>ApiKeyAuthFilter (filtro HTTP @Order(1))</td><td>401</td></tr><tr><td>Recurso inexistente</td><td>ResourceNotFoundException</td><td>404</td></tr><tr><td>Validación de campos (Bean Validation)</td><td>MethodArgumentNotValidException</td><td>400</td></tr><tr><td>Error no controlado</td><td>Excepción genérica</td><td>500</td></tr></tbody></table>
+<p>Los códigos los centraliza <code>GlobalExceptionHandler</code> (<code>@RestControllerAdvice</code>), y toda respuesta usa el envoltorio <code>ApiResponse{exito, mensaje, datos, timestamp}</code>.</p>
+<h2>4. Autenticación y cookies — seguridad real</h2>
+<p>El <code>ApiKeyAuthFilter</code> valida el header en cada petición (permitiendo solo <code>/h2-console</code> y <code>/favicon.ico</code>). La clave se configura externamente en <code>application.properties</code> (<code>app.security.api-key</code>) y se inyecta con <code>@Value</code>.</p>
+<h2>5. Ejemplos de consumo (cURL)</h2>
+<p>Puesto que enviamos el proyecto completo (frontend + backend) a su repositorio público, los endpoints se consumen así:</p>
+<pre class="code lang-bash"><code># 1. Listar pólizas filtradas
+curl -X GET "http://localhost:8080/polizas?tipo=COLECTIVA&amp;estado=ACTIVA" -H "x-api-key: 123456"
+
+# 2. Riesgos de una póliza
+curl -X GET "http://localhost:8080/polizas/1/riesgos" -H "x-api-key: 123456"
+
+# 3. Renovar con IPC 9,28 %
+curl -X POST "http://localhost:8080/polizas/1/renovar" -H "x-api-key: 123456" \
+     -H "Content-Type: application/json" -d '{"porcentajeIpc": 9.28}'
+
+# 4. Cancelar póliza (cancela sus riesgos)
+curl -X POST "http://localhost:8080/polizas/1/cancelar" -H "x-api-key: 123456"
+
+# 5. Agregar riesgo a póliza colectiva
+curl -X POST "http://localhost:8080/polizas/2/riesgos" -H "x-api-key: 123456" \
+     -H "Content-Type: application/json" -d '{
+       "direccion": "Carrera 7 # 116-50 Apto 802",
+       "ciudad": "Bogota D.C.",
+       "valorCanon": 3200000.00,
+       "descripcionInmueble": "Apartamento estrato 5 con balcon",
+       "arrendatarioNombre": "Camila Montoya",
+       "arrendatarioDoc": "1020304050"
+     }'
+
+# 6. Cancelar riesgo individual
+curl -X POST "http://localhost:8080/riesgos/3/cancelar" -H "x-api-key: 123456"
+
+# Mock de sincronización WebLogic CORE
+curl -X POST "http://localhost:8080/core-mock/evento" -H "x-api-key: 123456" \
+     -H "Content-Type: application/json" -d '{"evento":"ACTUALIZACION","polizaId":555}'
+</code></pre>
+<h2>6. Estructura, instalación y ejecución</h2>
+<h3>6.1 Frontend + API en memoria (app completa, :3000)</h3>
+<pre class="code lang-bash"><code>npm install
+cp .env.example .env.local      # opcional (GEMINI_API_KEY solo para funciones IA)
+npm run dev                     # abrir http://localhost:3000
+</code></pre>
+<h3>6.2 Backend Spring Boot real (:8080)</h3>
+<pre class="code lang-bash"><code>cd spring-boot-backend
+mvn clean package
+mvn spring-boot:run
+# Consola H2: http://localhost:8080/h2-console  (jdbc:h2:mem:polizasdb · sa · sin password)
+</code></pre>
+<h2>7. Formato de entrega: enlace público de GitHub</h2>
+<div class="callout"><div class="title">Enlace del repositorio público (completar antes de enviar)</div><p><strong>https://github.com/<span style="color:#0d9488">tu-usuario/tu-repositorio</span></strong></p></div>
+<p>El formato solicitado es un <strong>enlace público de GitHub</strong> — no se envían archivos, carpetas ni enlaces a Drive con el código fuente.</p>
+<h3>Guía para publicar la solución en GitHub</h3>
+<pre class="code lang-bash"><code># 1. Desde la raíz del proyecto (frontend + spring-boot-backend juntos)
+git init
+git add .
+git commit -m "feat: plataforma gestion de polizas de arrendamiento (modulos 1-4)"
+
+# 2. Crear el repositorio público y subirlo (con GitHub CLI) — alternativa A
+gh auth login
+gh repo create seguros-polizas --public --push --source . --remote origin
+
+# 2b. Alternativa B: usar un repositorio ya creado en github.com
+git remote add origin https://github.com/tu-usuario/tu-repositorio.git
+git branch -M main
+git push -u origin main
+</code></pre>
+<ul><li><strong>.gitignore:</strong> excluir <code>node_modules/</code>, <code>dist/</code>, <code>target/</code>, <code>.env.local</code> y cualquier archivo con claves reales.</li><li><strong>No subir credenciales:</strong> la clave <code>x-api-key</code> de la demo está documentada (123456) a propósito; no incluyas claves de Gemini ni datos sensibles.</li><li><strong>Verificación final:</strong> que el README y ambos proyectos queden visibles y compilables desde el repositorio público.</li></ul>
+<hr class="pagesep">
+<p><em>Evidencia de código: spring-boot-backend/src/main/java/com/seguros/polizas (controller, service, repository, security, exception, dto, model) y server.ts (demo Express en memoria).</em></p></body></html>
